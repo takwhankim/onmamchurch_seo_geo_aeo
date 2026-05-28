@@ -1,0 +1,221 @@
+<script>
+  const state = {
+    members: [],
+    selectedRowNumber: null,
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    bindEvents();
+    refreshDashboard();
+  });
+
+  function bindEvents() {
+    document.getElementById('memberForm').addEventListener('submit', handleAddMember);
+    document.getElementById('searchInput').addEventListener('input', renderMemberTable);
+    document.getElementById('seedBtn').addEventListener('click', handleSeedData);
+    document.getElementById('resetSeedBtn').addEventListener('click', handleResetSeedData);
+    document.getElementById('visitForm').addEventListener('submit', handleVisitSave);
+  }
+
+  function refreshDashboard() {
+    setLoading(true);
+    google.script.run
+      .withSuccessHandler((data) => {
+        hydrate(data);
+        setLoading(false);
+      })
+      .withFailureHandler(handleFailure)
+      .getDashboardData();
+  }
+
+  function hydrate(data) {
+    state.members = data.members || [];
+    renderStats(data.stats || {});
+    renderMemberTable();
+    renderRecentVisits(data.recentVisits || []);
+  }
+
+  function renderStats(stats) {
+    const cards = [
+      { label: '전체 새가족', value: stats.totalMembers || 0, hint: '관리 중인 총 인원' },
+      { label: '지연', value: stats.overdueCount || 0, hint: '예정일이 지난 대상' },
+      { label: '오늘', value: stats.todayCount || 0, hint: '오늘 심방 대상' },
+      { label: '7일 이내', value: stats.upcomingCount || 0, hint: '이번 주 예정 대상' },
+    ];
+
+    document.getElementById('stats').innerHTML = cards
+      .map((card) => `
+        <article class="stat-card">
+          <span>${escapeHtml(card.label)}</span>
+          <strong>${escapeHtml(String(card.value))}</strong>
+          <p class="helper">${escapeHtml(card.hint)}</p>
+        </article>
+      `)
+      .join('');
+  }
+
+  function renderMemberTable() {
+    const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+    const target = keyword
+      ? state.members.filter((member) => {
+          return [member.name, member.minister].some((value) =>
+            String(value).toLowerCase().includes(keyword)
+          );
+        })
+      : state.members;
+
+    const body = document.getElementById('memberTableBody');
+    if (!target.length) {
+      body.innerHTML = '<tr><td colspan="9" class="empty-row">표시할 대상이 없습니다.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = target
+      .map((member) => `
+        <tr>
+          <td><span class="badge ${escapeHtml(member.statusCode)}">${escapeHtml(member.status)}</span></td>
+          <td>
+            <div class="member-name">${escapeHtml(member.name)}</div>
+            <div class="helper">D${formatDayLabel(member.daysUntilNextVisit)}</div>
+          </td>
+          <td>${escapeHtml(member.minister)}</td>
+          <td>${escapeHtml(member.registeredAt)}</td>
+          <td>${escapeHtml(member.lastVisitAt)}</td>
+          <td>${escapeHtml(member.nextVisitAt)}</td>
+          <td>${escapeHtml(String(member.cycleDays))}일</td>
+          <td>${escapeHtml(member.phone || '-')}</td>
+          <td><button class="ghost" onclick="openVisitDialog(${member.rowNumber}, '${escapeJs(member.name)}')">심방 완료</button></td>
+        </tr>
+      `)
+      .join('');
+  }
+
+  function renderRecentVisits(visits) {
+    const container = document.getElementById('recentVisits');
+    if (!visits.length) {
+      container.innerHTML = '아직 기록이 없습니다.';
+      container.className = 'visit-list empty-state';
+      return;
+    }
+
+    container.className = 'visit-list';
+    container.innerHTML = visits
+      .map((visit) => `
+        <article class="visit-item">
+          <strong>${escapeHtml(visit.name)} · ${escapeHtml(visit.visitDate)}</strong>
+          <p>${escapeHtml(visit.minister)}</p>
+          <p class="helper">${escapeHtml(visit.note || '메모 없음')}</p>
+        </article>
+      `)
+      .join('');
+  }
+
+  function handleAddMember(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const payload = Object.fromEntries(new FormData(form).entries());
+
+    setLoading(true);
+    google.script.run
+      .withSuccessHandler((data) => {
+        hydrate(data);
+        form.reset();
+        form.cycleDays.value = 30;
+        setLoading(false);
+        alert('새가족이 등록되었습니다.');
+      })
+      .withFailureHandler(handleFailure)
+      .addMember(payload);
+  }
+
+  function openVisitDialog(rowNumber, name) {
+    state.selectedRowNumber = rowNumber;
+    const dialog = document.getElementById('visitDialog');
+    const form = document.getElementById('visitForm');
+    form.reset();
+    form.rowNumber.value = rowNumber;
+    form.visitDate.value = new Date().toISOString().slice(0, 10);
+    document.getElementById('visitTargetName').textContent = name;
+    dialog.showModal();
+  }
+
+  function handleVisitSave(event) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const payload = Object.fromEntries(new FormData(form).entries());
+
+    setLoading(true);
+    google.script.run
+      .withSuccessHandler((data) => {
+        hydrate(data);
+        document.getElementById('visitDialog').close();
+        setLoading(false);
+        alert('심방 기록이 저장되었습니다.');
+      })
+      .withFailureHandler(handleFailure)
+      .recordVisit(payload);
+  }
+
+  function handleSeedData() {
+    if (!confirm('현재 명단이 비어 있을 때만 샘플 데이터를 넣습니다. 계속할까요?')) {
+      return;
+    }
+
+    setLoading(true);
+    google.script.run
+      .withSuccessHandler((data) => {
+        hydrate(data);
+        setLoading(false);
+        alert('샘플 데이터가 입력되었습니다.');
+      })
+      .withFailureHandler(handleFailure)
+      .seedSampleData();
+  }
+
+  function handleResetSeedData() {
+    if (!confirm('현재 데이터를 지우고 샘플 데이터로 다시 채웁니다. 계속할까요?')) {
+      return;
+    }
+
+    setLoading(true);
+    google.script.run
+      .withSuccessHandler((data) => {
+        hydrate(data);
+        setLoading(false);
+        alert('샘플 데이터로 초기화했습니다.');
+      })
+      .withFailureHandler(handleFailure)
+      .resetAndSeedSampleData();
+  }
+
+  function handleFailure(error) {
+    setLoading(false);
+    alert(error && error.message ? error.message : '작업 중 오류가 발생했습니다.');
+  }
+
+  function setLoading(isLoading) {
+    document.querySelectorAll('button').forEach((button) => {
+      button.disabled = isLoading;
+    });
+  }
+
+  function formatDayLabel(days) {
+    if (days === 0) {
+      return '-DAY';
+    }
+    return days > 0 ? `-${days}` : `+${Math.abs(days)}`;
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
+  }
+
+  function escapeJs(value) {
+    return String(value).replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+  }
+</script>

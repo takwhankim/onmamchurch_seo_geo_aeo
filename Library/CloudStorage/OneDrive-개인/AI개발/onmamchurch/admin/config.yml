@@ -1,0 +1,71 @@
+backend:
+  name: git-gateway
+  branch: main
+
+media_folder: "uploads"
+public_folder: "/uploads"
+
+locale: "ko"
+
+collections:
+  - name: "sermons"
+    label: "설교 영상"
+    folder: "_sermons"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    fields:
+      - {label: "제목", name: "title", widget: "string"}
+      - {label: "날짜", name: "date", widget: "datetime"}
+      - {label: "설교자", name: "preacher", widget: "string"}
+      - {label: "성경구절", name: "scripture", widget: "string"}
+      - {label: "유튜브 링크", name: "youtube_url", widget: "string"}
+      - {label: "썸네일", name: "thumbnail", widget: "image", required: false}
+      - {label: "내용", name: "body", widget: "markdown", required: false}
+
+  - name: "gallery"
+    label: "사진 갤러리"
+    folder: "_gallery"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    fields:
+      - {label: "제목", name: "title", widget: "string"}
+      - {label: "날짜", name: "date", widget: "datetime"}
+      - {label: "카테고리", name: "category", widget: "select", options: ["예배", "행사", "교육", "봉사", "기타"]}
+      - {label: "대표 이미지", name: "featured_image", widget: "image"}
+      - {label: "사진들", name: "images", widget: "list", field: {label: "사진", name: "image", widget: "image"}}
+      - {label: "설명", name: "body", widget: "markdown", required: false}
+
+  - name: "posts"
+    label: "공지사항"
+    folder: "_posts"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    fields:
+      - {label: "제목", name: "title", widget: "string"}
+      - {label: "날짜", name: "date", widget: "datetime"}
+      - {label: "카테고리", name: "category", widget: "select", options: ["공지", "소식", "일정", "기타"]}
+      - {label: "첨부파일", name: "attachment", widget: "file", required: false}
+      - {label: "내용", name: "body", widget: "markdown"}
+
+  - name: "settings"
+    label: "사이트 설정"
+    files:
+      - name: "worship"
+        label: "예배 시간"
+        file: "_data/worship.yml"
+        fields:
+          - name: "services"
+            label: "예배"
+            widget: "list"
+            fields:
+              - {label: "요일", name: "day", widget: "string"}
+              - {label: "예배명", name: "name", widget: "string"}
+              - {label: "시간", name: "time", widget: "string"}
+      - name: "info"
+        label: "교회 정보"
+        file: "_data/info.yml"
+        fields:
+          - {label: "주소", name: "address", widget: "string"}
+          - {label: "전화번호", name: "phone", widget: "string"}
+          - {label: "이메일", name: "email", widget: "string"}
+          - {label: "계좌번호", name: "account", widget: "string"}

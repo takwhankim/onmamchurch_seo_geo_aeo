@@ -1,0 +1,16 @@
+{
+  "name": "onmamchurch-kakao-bot",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "18"
+  },
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions:kakaobot",
+    "logs": "firebase functions:log --only kakaobot"
+  },
+  "dependencies": {
+    "firebase-functions": "^4.9.0"
+  }
+}

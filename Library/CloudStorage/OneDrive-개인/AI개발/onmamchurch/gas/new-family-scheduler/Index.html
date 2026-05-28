@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>새가족 심방 스케줄러</title>
+    <?!= include('Styles'); ?>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Google Sheets + Google Apps Script</p>
+          <h1>새가족 심방 스케줄러</h1>
+          <p class="subtitle">
+            새가족 명단을 시트에 저장하고, 심방 예정일을 자동 계산해 관리합니다.
+          </p>
+        </div>
+        <div class="hero-actions">
+          <button class="secondary" id="seedBtn">샘플 데이터 넣기</button>
+          <button class="ghost" id="resetSeedBtn">샘플로 초기화</button>
+        </div>
+      </header>
+
+      <section class="stats" id="stats"></section>
+
+      <main class="grid">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>새가족 등록</h2>
+              <p>명단 시트에 바로 추가됩니다.</p>
+            </div>
+          </div>
+
+          <form id="memberForm" class="form-grid">
+            <label>
+              이름
+              <input type="text" name="name" placeholder="예: 김하준" required />
+            </label>
+            <label>
+              등록일
+              <input type="date" name="registeredAt" required />
+            </label>
+            <label>
+              담당사역자
+              <input type="text" name="minister" placeholder="예: 박민수 목사" required />
+            </label>
+            <label>
+              마지막심방일
+              <input type="date" name="lastVisitAt" required />
+            </label>
+            <label>
+              심방주기(일)
+              <input type="number" name="cycleDays" min="1" step="1" value="30" required />
+            </label>
+            <label>
+              연락처
+              <input type="text" name="phone" placeholder="010-0000-0000" />
+            </label>
+            <button type="submit" class="primary">새가족 추가</button>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>최근 심방 기록</h2>
+              <p>심방 완료 시 자동으로 쌓입니다.</p>
+            </div>
+          </div>
+          <div id="recentVisits" class="visit-list empty-state">아직 기록이 없습니다.</div>
+        </section>
+      </main>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>심방 대상 목록</h2>
+            <p>예정일이 빠른 순으로 정렬됩니다.</p>
+          </div>
+          <div class="panel-tools">
+            <input type="search" id="searchInput" placeholder="이름 또는 담당사역자 검색" />
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>상태</th>
+                <th>이름</th>
+                <th>담당사역자</th>
+                <th>등록일</th>
+                <th>마지막심방일</th>
+                <th>다음예정일</th>
+                <th>주기</th>
+                <th>연락처</th>
+                <th>처리</th>
+              </tr>
+            </thead>
+            <tbody id="memberTableBody">
+              <tr>
+                <td colspan="9" class="empty-row">데이터를 불러오는 중입니다...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <dialog id="visitDialog">
+      <form method="dialog" id="visitForm" class="dialog-body">
+        <div>
+          <p class="dialog-label">심방 완료 등록</p>
+          <h3 id="visitTargetName">대상자</h3>
+        </div>
+        <input type="hidden" name="rowNumber" />
+        <label>
+          심방일
+          <input type="date" name="visitDate" required />
+        </label>
+        <label>
+          메모
+          <textarea name="note" rows="4" placeholder="예: 가정예배 안내, 다음 주 재연락"></textarea>
+        </label>
+        <div class="dialog-actions">
+          <button value="cancel" class="ghost">취소</button>
+          <button type="submit" class="primary">저장</button>
+        </div>
+      </form>
+    </dialog>
+
+    <?!= include('JavaScript'); ?>
+  </body>
+</html>
